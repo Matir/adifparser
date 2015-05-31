@@ -1,4 +1,4 @@
 package adifparser
 
-type AdifRecord struct {
+type ADIFRecord struct {
 }

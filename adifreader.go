@@ -7,11 +7,11 @@ import (
 	"strconv"
 )
 
-type AdifReader interface {
-	ReadRecord() (AdifRecord, error)
+type ADIFReader interface {
+	ReadRecord() (ADIFRecord, error)
 }
 
-type baseAdifReader struct {
+type baseADIFReader struct {
 	// Underlying io Reader
 	rdr io.Reader
 	// Whether or not the header has been read
@@ -22,15 +22,15 @@ type baseAdifReader struct {
 	excess []byte
 }
 
-func (ardr *baseAdifReader) ReadRecord() (*AdifRecord, error) {
+func (ardr *baseADIFReader) ReadRecord() (*ADIFRecord, error) {
 	if !ardr.headerRead {
 		ardr.readHeader()
 	}
 	return nil, nil
 }
 
-func NewAdifReader(r io.Reader) *baseAdifReader {
-	reader := new(baseAdifReader)
+func NewADIFReader(r io.Reader) *baseADIFReader {
+	reader := new(baseADIFReader)
 	reader.rdr = bufio.NewReader(r)
 	reader.headerRead = false
 	// Assumption
@@ -38,7 +38,7 @@ func NewAdifReader(r io.Reader) *baseAdifReader {
 	return reader
 }
 
-func (ardr *baseAdifReader) readHeader() {
+func (ardr *baseADIFReader) readHeader() {
 	ardr.headerRead = true
 	eoh := []byte("<eoh>")
 	adif_version := []byte("<adif_ver:")
@@ -75,16 +75,33 @@ func (ardr *baseAdifReader) readHeader() {
 	ardr.excess = chunk[bytes.Index(chunk, []byte("<")):]
 }
 
-func (ardr *baseAdifReader) readChunk() ([]byte, error) {
+func (ardr *baseADIFReader) readChunk() ([]byte, error) {
 	chunk := make([]byte, 1024)
-	_, err := ardr.rdr.Read(chunk)
+	n, err := ardr.rdr.Read(chunk)
 	if err != nil {
 		// TODO: Log the error somewhere
 		return nil, err
 	}
-	return chunk, nil
+	return chunk[:n], nil
 }
 
-func (ardr *baseAdifReader) readRecord() ([]byte, error) {
-	return nil, nil
+func (ardr *baseADIFReader) readRecord() ([]byte, error) {
+	eor := []byte("<eor>")
+	buf := ardr.excess
+	ardr.excess = nil
+	for !bytes.Contains(buf, eor) {
+		newchunk, err := ardr.readChunk()
+		buf = bytes.TrimSpace(buf)
+		if err != nil {
+			if err == io.EOF {
+				return buf, nil
+			}
+			//TODO: Log the error somewhere
+			return buf, err
+		}
+		buf = append(buf, newchunk...)
+	}
+	record_end := bytes.Index(buf, eor)
+	ardr.excess = buf[record_end+len(eor):]
+	return bytes.TrimSpace(buf[:record_end]), nil
 }
