@@ -22,15 +22,19 @@ type baseADIFReader struct {
 	excess []byte
 }
 
-func (ardr *baseADIFReader) ReadRecord() (*ADIFRecord, error) {
+func (ardr *baseADIFReader) ReadRecord() (ADIFRecord, error) {
 	if !ardr.headerRead {
 		ardr.readHeader()
 	}
-	return nil, nil
+	buf, err := ardr.readRecord()
+	if err != nil {
+		return nil, err
+	}
+	return ParseADIFRecord(buf)
 }
 
 func NewADIFReader(r io.Reader) *baseADIFReader {
-	reader := new(baseADIFReader)
+	reader := &baseADIFReader{}
 	reader.rdr = bufio.NewReader(r)
 	reader.headerRead = false
 	// Assumption

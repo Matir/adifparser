@@ -12,7 +12,7 @@ func testHeaderFile(t *testing.T, filename string) {
 		t.Fatal(err)
 	}
 
-	reader := new(baseADIFReader)
+	reader := &baseADIFReader{}
 	reader.rdr = f
 	reader.readHeader()
 	if !bytes.HasPrefix(reader.excess, []byte("<mycall")) {
@@ -38,7 +38,7 @@ func TestReadRecord(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	reader := new(baseADIFReader)
+	reader := &baseADIFReader{}
 	reader.rdr = f
 
 	testStrings := [...]string{
