@@ -43,6 +43,8 @@ func addField(name string, datatype int) {
 }
 
 func init() {
+	ADIFfieldInfo = make(map[string]fieldMetadata)
+
 	// Common fields first
 	addField("call", ADIFString)
 	addField("station_callsign", ADIFString)
@@ -96,7 +98,6 @@ func init() {
 	addField("lotw_qsl_rcvd", ADIFString)
 	addField("lotw_qsl_sent", ADIFString)
 	addField("max_bursts", ADIFNumber)
-	addField("mode", ADIFString)
 	addField("ms_shower", ADIFString)
 	addField("my_city", ADIFString)
 	addField("my_cnty", ADIFString)
@@ -134,8 +135,6 @@ func init() {
 	addField("qsl_sent_via", ADIFString)
 	addField("qsl_via", ADIFString)
 	addField("qso_complete", ADIFString)
-	addField("qso_date", ADIFDate)
-	addField("qso_date_off", ADIFDate)
 	addField("qso_random", ADIFBoolean)
 	addField("qth", ADIFString)
 	addField("rig", ADIFString)
@@ -150,13 +149,10 @@ func init() {
 	addField("srx", ADIFNumber)
 	addField("srx_string", ADIFString)
 	addField("state", ADIFString)
-	addField("station_callsign", ADIFString)
 	addField("stx", ADIFNumber)
 	addField("stx_string", ADIFString)
 	addField("swl", ADIFBoolean)
 	addField("ten_ten", ADIFNumber)
-	addField("time_off", ADIFTime)
-	addField("time_on", ADIFTime)
 	addField("tx_pwr", ADIFNumber)
 	addField("ve_prov", ADIFString)
 	addField("web", ADIFString)
