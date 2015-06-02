@@ -35,14 +35,6 @@ func (ardr *baseADIFReader) ReadRecord() (ADIFRecord, error) {
 		ardr.readHeader()
 	}
 	buf, err := ardr.readRecord()
-	if err == io.EOF {
-		saved_err := err
-		rec, err := ParseADIFRecord(buf)
-		if err != nil {
-			return nil, err
-		}
-		return rec, saved_err
-	}
 	if err != nil {
 		return nil, err
 	}
@@ -138,9 +130,13 @@ func (ardr *baseADIFReader) readRecord() ([]byte, error) {
 		newchunk, err := ardr.readChunk()
 		buf = bytes.TrimSpace(buf)
 		if err != nil {
+			ardr.excess = nil
 			if err == io.EOF {
 				// Expected, pass it up the chain
-				return buf, err
+				if len(buf) > 0 {
+					return buf, nil
+				}
+				return nil, err
 			}
 			//TODO: Log the error somewhere
 			return buf, err

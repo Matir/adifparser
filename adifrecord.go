@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"crypto/sha256"
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"strconv"
 	"strings"
@@ -30,6 +31,9 @@ type fieldData struct {
 	hasType  bool
 }
 
+// Errors
+var NoData = errors.New("No data to parse.")
+
 // Create a new ADIFRecord from scratch
 func NewADIFRecord() *baseADIFRecord {
 	record := &baseADIFRecord{}
@@ -40,6 +44,10 @@ func NewADIFRecord() *baseADIFRecord {
 // Parse an ADIFRecord
 func ParseADIFRecord(buf []byte) (*baseADIFRecord, error) {
 	record := NewADIFRecord()
+
+	if len(buf) == 0 {
+		return nil, NoData
+	}
 
 	for len(buf) > 0 {
 		var data *fieldData

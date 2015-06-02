@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"io"
 	"os"
+	"strings"
 	"testing"
 )
 
@@ -69,11 +70,30 @@ func TestReadRecord(t *testing.T) {
 		}
 	}
 
+	r, err := reader.ReadRecord()
+	if err == nil {
+		t.Fatal("Expected an error, but err was nil.")
+	}
+	if err != io.EOF {
+		t.Fatalf("Expected %v, got %v", io.EOF, err)
+	}
+	if r != nil {
+		t.Fatalf("Expected nil record, got %v", r)
+	}
+
 	_, err = reader.ReadRecord()
 	if err == nil {
 		t.Fatal("Expected an error, but err was nil.")
 	}
 	if err != io.EOF {
 		t.Fatalf("Expected %v, got %v", io.EOF, err)
+	}
+}
+
+func TestDedupeReadRecord(t *testing.T) {
+	buf := strings.NewReader("<mycall:6>KF4MDV<eor><mycall:6>KF4MDV<eor>")
+	reader := NewADIFReader(buf)
+	if reader == nil {
+		t.Fatal("Invalid reader.")
 	}
 }
