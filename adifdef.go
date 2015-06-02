@@ -42,6 +42,15 @@ func addField(name string, datatype int) {
 	ADIFfieldInfo[name] = fieldMetadata{name, datatype}
 }
 
+func isStandardADIFField(name string) bool {
+	for _, n := range ADIFfieldOrder {
+		if name == n {
+			return true
+		}
+	}
+	return false
+}
+
 func init() {
 	ADIFfieldInfo = make(map[string]fieldMetadata)
 

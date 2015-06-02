@@ -29,3 +29,25 @@ func TestGetNextField(t *testing.T) {
 		}
 	}
 }
+
+func TestParseADIFRecord(t *testing.T) {
+	testData := "<call:4>W1AW<STATION_CALL:6>KF4MDV"
+	record, err := ParseADIFRecord([]byte(testData))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if n, ok := record.values["call"]; ok {
+		if n != "W1AW" {
+			t.Fatalf("CALL: %q != %q", n, "W1AW")
+		}
+	} else {
+		t.Fatal("No 'call' value.")
+	}
+	if n, ok := record.values["station_call"]; ok {
+		if n != "KF4MDV" {
+			t.Fatalf("STATION_CALL: %q != %q", n, "KF4MDV")
+		}
+	} else {
+		t.Fatal("No 'station_call' value.")
+	}
+}

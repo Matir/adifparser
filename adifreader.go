@@ -7,10 +7,12 @@ import (
 	"strconv"
 )
 
+// Interface for ADIFReader
 type ADIFReader interface {
 	ReadRecord() (ADIFRecord, error)
 }
 
+// Real implementation of ADIFReader
 type baseADIFReader struct {
 	// Underlying io Reader
 	rdr io.Reader
@@ -20,6 +22,12 @@ type baseADIFReader struct {
 	version float64
 	// Excess read data
 	excess []byte
+}
+
+type dedupeADIFReader struct {
+	baseADIFReader
+	// Store seen entities
+	seen map[string]bool
 }
 
 func (ardr *baseADIFReader) ReadRecord() (ADIFRecord, error) {
@@ -33,13 +41,38 @@ func (ardr *baseADIFReader) ReadRecord() (ADIFRecord, error) {
 	return ParseADIFRecord(buf)
 }
 
+func (ardr *dedupeADIFReader) ReadRecord() (ADIFRecord, error) {
+	for true {
+		record, err := ardr.baseADIFReader.ReadRecord()
+		if err != nil {
+			return nil, err
+		}
+		fp := record.Fingerprint()
+		if _, ok := ardr.seen[fp]; !ok {
+			return record, nil
+		}
+	}
+	return nil, nil
+}
+
 func NewADIFReader(r io.Reader) *baseADIFReader {
 	reader := &baseADIFReader{}
-	reader.rdr = bufio.NewReader(r)
-	reader.headerRead = false
-	// Assumption
-	reader.version = 2
+	reader.init(r)
 	return reader
+}
+
+func NewDedupeADIFReader(r io.Reader) *dedupeADIFReader {
+	reader := &dedupeADIFReader{}
+	reader.init(r)
+	reader.seen = make(map[string]bool)
+	return reader
+}
+
+func (ardr *baseADIFReader) init(r io.Reader) {
+	ardr.rdr = bufio.NewReader(r)
+	ardr.headerRead = false
+	// Assumption
+	ardr.version = 2
 }
 
 func (ardr *baseADIFReader) readHeader() {

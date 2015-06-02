@@ -2,6 +2,8 @@ package adifparser
 
 import (
 	"bytes"
+	"crypto/sha256"
+	"encoding/hex"
 	"fmt"
 	"strconv"
 	"strings"
@@ -98,15 +100,35 @@ func serializeField(name string, value string) string {
 // Print an ADIFRecord as a string
 func (r *baseADIFRecord) ToString() string {
 	var record bytes.Buffer
+	for _, n := range ADIFfieldOrder {
+		if v, ok := r.values[n]; ok {
+			record.WriteString(serializeField(n, v))
+		}
+	}
 	for n, v := range r.values {
-		record.WriteString(serializeField(n, v))
+		if !isStandardADIFField(n) {
+			record.WriteString(serializeField(n, v))
+		}
 	}
 	return record.String()
 }
 
 // Get fingerprint of ADIFRecord
 func (r *baseADIFRecord) Fingerprint() string {
-	return ""
+	fpfields := []string{
+		"call", "station_callsign", "band",
+		"freq", "mode", "qso_date", "time_on",
+		"time_off"}
+	fpvals := make([]string, 0, len(fpfields))
+	for _, f := range fpfields {
+		if n, ok := r.values[f]; ok {
+			fpvals = append(fpvals, n)
+		}
+	}
+	fptext := strings.Join(fpvals, "|")
+	h := sha256.New()
+	h.Write([]byte(fptext))
+	return hex.EncodeToString(h.Sum(nil))
 }
 
 // Get a value
