@@ -2,6 +2,7 @@ package adifparser
 
 import (
 	"bytes"
+	"io"
 	"os"
 	"testing"
 )
@@ -32,7 +33,7 @@ func TestHeaderComment(t *testing.T) {
 	testHeaderFile(t, "testdata/header_comment.adi")
 }
 
-func TestReadRecord(t *testing.T) {
+func TestInternalReadRecord(t *testing.T) {
 	f, err := os.Open("testdata/readrecord.adi")
 	if err != nil {
 		t.Fatal(err)
@@ -45,11 +46,34 @@ func TestReadRecord(t *testing.T) {
 		"<mycall:6>KF4MDV", "<mycall:6>KG4JEL", "<mycall:4>W1AW"}
 	for i := range testStrings {
 		buf, err := reader.readRecord()
-		if err != nil {
+		if err != nil && err != io.EOF {
 			t.Fatal(err)
 		}
 		if string(buf) != testStrings[i] {
 			t.Fatalf("Got bad record %q, expected %q.", string(buf), testStrings[i])
 		}
+	}
+}
+
+func TestReadRecord(t *testing.T) {
+	f, err := os.Open("testdata/readrecord.adi")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	reader := NewADIFReader(f)
+	for i := 0; i < 3; i++ {
+		_, err = reader.ReadRecord()
+		if err != nil && err != io.EOF {
+			t.Fatal(err)
+		}
+	}
+
+	_, err = reader.ReadRecord()
+	if err == nil {
+		t.Fatal("Expected an error, but err was nil.")
+	}
+	if err != io.EOF {
+		t.Fatalf("Expected %v, got %v", io.EOF, err)
 	}
 }
