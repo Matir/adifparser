@@ -17,6 +17,7 @@ type ADIFRecord interface {
 	// Fingerprint for duplication detection
 	Fingerprint() string
 	// Setters and getters
+	GetValue(string) (string, error)
 }
 
 // Internal implementation for ADIFRecord
@@ -33,6 +34,7 @@ type fieldData struct {
 
 // Errors
 var NoData = errors.New("No data to parse.")
+var NoSuchField = errors.New("No such field.")
 
 // Create a new ADIFRecord from scratch
 func NewADIFRecord() *baseADIFRecord {
@@ -140,6 +142,9 @@ func (r *baseADIFRecord) Fingerprint() string {
 }
 
 // Get a value
-func (r *baseADIFRecord) GetValue(name string) string {
-	return r.values[name]
+func (r *baseADIFRecord) GetValue(name string) (string, error) {
+	if v, ok := r.values[name]; ok {
+		return v, nil
+	}
+	return "", NoSuchField
 }
