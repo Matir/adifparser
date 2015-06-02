@@ -49,6 +49,7 @@ func (ardr *dedupeADIFReader) ReadRecord() (ADIFRecord, error) {
 		}
 		fp := record.Fingerprint()
 		if _, ok := ardr.seen[fp]; !ok {
+			ardr.seen[fp] = true
 			return record, nil
 		}
 	}

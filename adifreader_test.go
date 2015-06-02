@@ -91,9 +91,21 @@ func TestReadRecord(t *testing.T) {
 }
 
 func TestDedupeReadRecord(t *testing.T) {
-	buf := strings.NewReader("<mycall:6>KF4MDV<eor><mycall:6>KF4MDV<eor>")
-	reader := NewADIFReader(buf)
+	buf := strings.NewReader("<mycall:6>KF4MDV<eor><mycall:6>KF4MDV<fail:1>Y<eor>")
+	reader := NewDedupeADIFReader(buf)
 	if reader == nil {
 		t.Fatal("Invalid reader.")
+	}
+
+	if r, err := reader.ReadRecord(); err != nil {
+		t.Fatal(err)
+	} else if r == nil {
+		t.Fatal("Got nil record.")
+	}
+
+	if r, err := reader.ReadRecord(); err != io.EOF {
+		t.Fatalf("Expected %v, got %v.", io.EOF, err)
+	} else if r != nil {
+		t.Fatalf("Got %v instead of nil.", r)
 	}
 }
