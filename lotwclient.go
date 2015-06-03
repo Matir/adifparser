@@ -41,24 +41,32 @@ func (c *lotwClientImpl) Read(p []byte) (int, error) {
 		}
 	}
 	usable := c.buf
-	storage := make([]byte, 0, cap(usable)-len(usable))
-	_, err := c.httpResponse.Body.Read(storage)
+	buflen := cap(c.buf) - len(c.buf)
+	storage := make([]byte, buflen, buflen)
+	n, err := c.httpResponse.Body.Read(storage)
 	if err != nil && err != io.EOF {
-		copyWithoutLOTW(p, usable)
-		return len(p), err
+		n = copyWithoutLOTW(p, usable)
+		return n, err
 	}
-	if cap(p) < len(usable) {
-		usable = usable[:cap(p)]
+	usable = append(usable, storage[:n]...)
+	max_len := len(usable)
+	if cap(p) < max_len {
+		max_len = cap(p)
 	}
-	if end := bytes.LastIndex(usable, []byte("<")); end > 0 {
-		usable = usable[:end]
+	if end := bytes.LastIndex(usable[:max_len], []byte("<")); end > 0 {
+		if endtag := bytes.LastIndex(usable, []byte(">")); endtag > -1 && endtag < end {
+			max_len = end
+		}
 	}
-	c.buf = c.buf[len(usable):]
-	copyWithoutLOTW(p, usable)
+
+	n = copy(c.buf, usable[max_len:])
+	c.buf = c.buf[:n]
+
+	n = copyWithoutLOTW(p, usable[:max_len])
 	if err == io.EOF && len(c.buf) == 0 {
-		return len(p), err
+		return n, err
 	}
-	return len(p), nil
+	return n, nil
 }
 
 func copyWithoutLOTW(dst, src []byte) int {
