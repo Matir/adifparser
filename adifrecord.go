@@ -35,6 +35,7 @@ type fieldData struct {
 // Errors
 var NoData = errors.New("No data to parse.")
 var NoSuchField = errors.New("No such field.")
+var InvalidField = errors.New("Invalid field definition.")
 
 // Create a new ADIFRecord from scratch
 func NewADIFRecord() *baseADIFRecord {
@@ -72,13 +73,18 @@ func getNextField(buf []byte) (*fieldData, []byte, error) {
 	// Extract name
 	start_of_name := bytes.IndexByte(buf, '<') + 1
 	end_of_name := bytes.IndexByte(buf, ':')
+	end_of_tag := bytes.IndexByte(buf, '>')
+	if end_of_name == -1 || end_of_tag < end_of_name {
+		return nil, buf, InvalidField
+	}
 	data.name = strings.ToLower(string(buf[start_of_name:end_of_name]))
 	buf = buf[end_of_name+1:]
+	// Adjust to new buffer
+	end_of_tag -= end_of_name + 1
 
 	// Length
 	var length int
 	var err error
-	end_of_tag := bytes.IndexByte(buf, '>')
 	start_type := bytes.IndexByte(buf, ':')
 	if start_type == -1 || start_type > end_of_tag {
 		end_of_length := bytes.IndexByte(buf, '>')

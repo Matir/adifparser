@@ -46,6 +46,8 @@ func main() {
 		writer.WriteRecord(record)
 	}
 
+	writer.Flush()
+
 	if writefp != nil {
 		writefp.Close()
 	}
