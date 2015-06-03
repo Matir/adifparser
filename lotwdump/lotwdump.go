@@ -23,6 +23,7 @@ func main() {
 	reader := adifparser.NewADIFReader(client)
 	writer := adifparser.NewADIFWriter(os.Stdout)
 	defer writer.Flush()
+	defer client.Close()
 
 	for record, err := reader.ReadRecord(); record != nil; record, err = reader.ReadRecord() {
 		if err != nil {
