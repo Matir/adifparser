@@ -101,28 +101,29 @@ func (ardr *baseADIFReader) readHeader() {
 		if bytes.HasPrefix(bytes.ToLower(chunk), adif_version) {
 			ver_len_str_end := bytes.Index(chunk, []byte(">"))
 			ver_len_str := string(chunk[len(adif_version):ver_len_str_end])
-			ver_len, err := strconv.ParseInt(ver_len_str, 0, 0)
+			ver_len, err := strconv.Atoi(ver_len_str)
 			if err != nil {
-				// TODO: Log the error somewhere
+				adiflog.Fatal(err)
 			}
-			ver_len_end := int64(ver_len_str_end) + 1 + ver_len
+			ver_len_end := ver_len_str_end + 1 + ver_len
 			ardr.version, err = strconv.ParseFloat(
 				string(chunk[ver_len_str_end+1:ver_len_end]), 0)
 			excess := chunk[ver_len_end:]
-			excess = excess[bytes.Index(bytes.ToLower(excess), eoh)+len(eoh):]
-			ardr.excess = excess[bytes.Index(excess, []byte("<")):]
+			eoh_end := bIndexCI(excess, eoh) + len(eoh)
+			excess = excess[eoh_end:]
+			ardr.excess = excess[tagStartPos(excess):]
 		} else {
 			ardr.excess = chunk
 		}
 		return
 	}
-	for !bytes.Contains(bytes.ToLower(chunk), eoh) {
+	for !bContainsCI(chunk, eoh) {
 		newchunk, _ := ardr.readChunk()
 		chunk = append(chunk, newchunk...)
 	}
-	offset := bytes.Index(bytes.ToLower(chunk), eoh) + len(eoh)
+	offset := bIndexCI(chunk, eoh) + len(eoh)
 	chunk = chunk[offset:]
-	ardr.excess = chunk[bytes.Index(chunk, []byte("<")):]
+	ardr.excess = chunk[tagStartPos(chunk):]
 }
 
 func (ardr *baseADIFReader) readChunk() ([]byte, error) {
@@ -138,7 +139,7 @@ func (ardr *baseADIFReader) readRecord() ([]byte, error) {
 	eor := []byte("<eor>")
 	buf := ardr.excess
 	ardr.excess = nil
-	for !bytes.Contains(bytes.ToLower(buf), eor) {
+	for !bContainsCI(buf, eor) {
 		newchunk, err := ardr.readChunk()
 		buf = bytes.TrimSpace(buf)
 		if err != nil {
@@ -155,7 +156,7 @@ func (ardr *baseADIFReader) readRecord() ([]byte, error) {
 		}
 		buf = append(buf, newchunk...)
 	}
-	record_end := bytes.Index(bytes.ToLower(buf), eor)
+	record_end := bIndexCI(buf, eor)
 	ardr.excess = buf[record_end+len(eor):]
 	return bytes.TrimSpace(buf[:record_end]), nil
 }

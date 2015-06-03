@@ -71,7 +71,7 @@ func getNextField(buf []byte) (*fieldData, []byte, error) {
 	data := &fieldData{}
 
 	// Extract name
-	start_of_name := bytes.IndexByte(buf, '<') + 1
+	start_of_name := tagStartPos(buf) + 1
 	end_of_name := bytes.IndexByte(buf, ':')
 	end_of_tag := bytes.IndexByte(buf, '>')
 	if end_of_name == -1 || end_of_tag < end_of_name {
@@ -94,8 +94,8 @@ func getNextField(buf []byte) (*fieldData, []byte, error) {
 	} else {
 		length, err = strconv.Atoi(string(buf[:start_type]))
 		data.typecode = buf[start_type+1]
-		data.hasType = true
 		buf = buf[start_type+3:]
+		data.hasType = true
 	}
 	if err != nil {
 		// TODO: log the error
@@ -121,6 +121,7 @@ func (r *baseADIFRecord) ToString() string {
 			record.WriteString(serializeField(n, v))
 		}
 	}
+	// Handle custom fields
 	for n, v := range r.values {
 		if !isStandardADIFField(n) {
 			record.WriteString(serializeField(n, v))
