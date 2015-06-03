@@ -35,3 +35,27 @@ func TestRead(t *testing.T) {
 		t.Fatalf("Expected %v, got %v.\n", testString, buf)
 	}
 }
+
+func TestReadChunked(t *testing.T) {
+	c := NewLOTWClient("u", "p")
+	testString := "This doesn't parse, so nothing special needed."
+	c.httpResponse = makeMockResponse(testString + "<APP_LoTW_EOF>")
+	buf := make([]byte, 3)
+	n, err := c.Read(buf)
+	buf = buf[:n]
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(buf[:n]) != testString[:n] {
+		t.Fatalf("Expected %v, got %v.\n", testString, buf)
+	}
+	prev_n := n
+	n, err = c.Read(buf)
+	buf = buf[:n]
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(buf[:n]) != testString[prev_n:prev_n+n] {
+		t.Fatalf("Expected %v, got %v.\n", testString, buf)
+	}
+}

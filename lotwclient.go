@@ -46,8 +46,7 @@ func (c *lotwClientImpl) Read(p []byte) (int, error) {
 		}
 	}
 	usable := c.buf
-	buflen := cap(c.buf) - len(c.buf)
-	storage := make([]byte, buflen, buflen)
+	storage := make([]byte, 1024)
 	n, err := c.httpResponse.Body.Read(storage)
 	if err != nil && err != io.EOF {
 		n = copyWithoutLOTW(p, usable)
@@ -64,8 +63,7 @@ func (c *lotwClientImpl) Read(p []byte) (int, error) {
 		}
 	}
 
-	n = copy(c.buf, usable[max_len:])
-	c.buf = c.buf[:n]
+	c.buf = usable[max_len:]
 
 	n = copyWithoutLOTW(p, usable[:max_len])
 	if err == io.EOF && len(c.buf) == 0 {
@@ -92,7 +90,7 @@ func (c *lotwClientImpl) Close() error {
 
 func (c *lotwClientImpl) open() error {
 	params := map[string]string{
-		"username":  c.username,
+		"login":     c.username,
 		"password":  c.password,
 		"qso_query": "1",
 	}
@@ -108,7 +106,7 @@ func (c *lotwClientImpl) open() error {
 }
 
 func makeQueryString(data map[string]string) string {
-	elements := make([]string, len(data))
+	elements := make([]string, 0, len(data))
 	for param, value := range data {
 		elements = append(elements,
 			url.QueryEscape(param)+"="+url.QueryEscape(value))
