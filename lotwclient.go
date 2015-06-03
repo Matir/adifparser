@@ -25,6 +25,11 @@ type lotwClientImpl struct {
 	httpResponse *http.Response
 	// Temporary read buffer
 	buf []byte
+	// Options
+	qsl_only      bool
+	qso_mydetail  bool
+	qso_qsldetail bool
+	qso_withown   bool
 	// TODO: state storage
 }
 
@@ -34,6 +39,13 @@ func NewLOTWClient(username, password string) *lotwClientImpl {
 	client.username = username
 	client.password = password
 	client.buf = make([]byte, 0, 1024)
+
+	// Default options
+	client.qsl_only = false
+	client.qso_mydetail = true
+	client.qso_qsldetail = true
+	client.qso_withown = true
+
 	return client
 }
 
@@ -89,11 +101,7 @@ func (c *lotwClientImpl) Close() error {
 }
 
 func (c *lotwClientImpl) open() error {
-	params := map[string]string{
-		"login":     c.username,
-		"password":  c.password,
-		"qso_query": "1",
-	}
+	params := c.getParams()
 	requri, _ := url.Parse(LOTWAPI)
 	requri.RawQuery = makeQueryString(params)
 	fmt.Printf("Requesting: %s\n", requri.String())
@@ -103,6 +111,29 @@ func (c *lotwClientImpl) open() error {
 	}
 	c.httpResponse = resp
 	return nil
+}
+
+func (c *lotwClientImpl) getParams() map[string]string {
+	params := map[string]string{
+		"login":     c.username,
+		"password":  c.password,
+		"qso_query": "1",
+	}
+	if c.qsl_only {
+		params["qso_qsl"] = "yes"
+	} else {
+		params["qso_qsl"] = "no"
+	}
+	if c.qso_mydetail {
+		params["qso_mydetail"] = "yes"
+	}
+	if c.qso_qsldetail {
+		params["qso_qsldetail"] = "yes"
+	}
+	if c.qso_withown {
+		params["qso_withown"] = "yes"
+	}
+	return params
 }
 
 func makeQueryString(data map[string]string) string {
