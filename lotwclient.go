@@ -2,9 +2,14 @@ package adifparser
 
 import (
 	"bytes"
+	"fmt"
 	"io"
 	"net/http"
+	"net/url"
+	"strings"
 )
+
+const LOTWAPI string = "https://lotw.arrl.org/lotwuser/lotwreport.adi"
 
 type LOTWClient interface {
 	// Implement reader
@@ -86,5 +91,27 @@ func (c *lotwClientImpl) Close() error {
 }
 
 func (c *lotwClientImpl) open() error {
+	params := map[string]string{
+		"username":  c.username,
+		"password":  c.password,
+		"qso_query": "1",
+	}
+	requri, _ := url.Parse(LOTWAPI)
+	requri.RawQuery = makeQueryString(params)
+	fmt.Printf("Requesting: %s\n", requri.String())
+	resp, err := http.Get(requri.String())
+	if err != nil {
+		return err
+	}
+	c.httpResponse = resp
 	return nil
+}
+
+func makeQueryString(data map[string]string) string {
+	elements := make([]string, len(data))
+	for param, value := range data {
+		elements = append(elements,
+			url.QueryEscape(param)+"="+url.QueryEscape(value))
+	}
+	return strings.Join(elements, "&")
 }
