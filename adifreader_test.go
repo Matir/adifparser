@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"io"
 	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 )
@@ -107,5 +108,35 @@ func TestDedupeReadRecord(t *testing.T) {
 		t.Fatalf("Expected %v, got %v.", io.EOF, err)
 	} else if r != nil {
 		t.Fatalf("Got %v instead of nil.", r)
+	}
+}
+
+func TestFullFiles(t *testing.T) {
+	expected := map[string]int{
+		"lotw.adi":  250,
+		"wsjtx.adi": 74,
+		"xlog.adi":  425,
+	}
+	for file, count := range expected {
+		fname := filepath.Join("testdata", file)
+		f, err := os.Open(fname)
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer f.Close()
+		reader := NewADIFReader(f)
+		for rec, err := reader.ReadRecord(); err != io.EOF; {
+			if err != nil {
+				t.Fatal(err)
+			}
+			if rec == nil {
+				t.Fatal("rec is nil")
+			}
+			rec, err = reader.ReadRecord()
+		}
+		if reader.RecordCount() != count {
+			t.Fatalf("Record count for %s was wrong: got %d, expected %d.",
+				file, reader.RecordCount(), count)
+		}
 	}
 }

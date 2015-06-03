@@ -10,6 +10,7 @@ import (
 // Interface for ADIFReader
 type ADIFReader interface {
 	ReadRecord() (ADIFRecord, error)
+	RecordCount() int
 }
 
 // Real implementation of ADIFReader
@@ -22,6 +23,8 @@ type baseADIFReader struct {
 	version float64
 	// Excess read data
 	excess []byte
+	// Record count
+	records int
 }
 
 type dedupeADIFReader struct {
@@ -36,9 +39,17 @@ func (ardr *baseADIFReader) ReadRecord() (ADIFRecord, error) {
 	}
 	buf, err := ardr.readRecord()
 	if err != nil {
+		if err != io.EOF {
+			adiflog.Printf("readRecord: %v", err)
+		}
 		return nil, err
 	}
-	return ParseADIFRecord(buf)
+	record, err := ParseADIFRecord(buf)
+	if err == nil {
+		ardr.records += 1
+		return record, nil
+	}
+	return record, err
 }
 
 func (ardr *dedupeADIFReader) ReadRecord() (ADIFRecord, error) {
@@ -74,6 +85,7 @@ func (ardr *baseADIFReader) init(r io.Reader) {
 	ardr.headerRead = false
 	// Assumption
 	ardr.version = 2
+	ardr.records = 0
 }
 
 func (ardr *baseADIFReader) readHeader() {
@@ -86,7 +98,7 @@ func (ardr *baseADIFReader) readHeader() {
 		return
 	}
 	if bytes.HasPrefix(chunk, []byte("<")) {
-		if bytes.HasPrefix(chunk, adif_version) {
+		if bytes.HasPrefix(bytes.ToLower(chunk), adif_version) {
 			ver_len_str_end := bytes.Index(chunk, []byte(">"))
 			ver_len_str := string(chunk[len(adif_version):ver_len_str_end])
 			ver_len, err := strconv.ParseInt(ver_len_str, 0, 0)
@@ -97,18 +109,18 @@ func (ardr *baseADIFReader) readHeader() {
 			ardr.version, err = strconv.ParseFloat(
 				string(chunk[ver_len_str_end+1:ver_len_end]), 0)
 			excess := chunk[ver_len_end:]
-			excess = excess[bytes.Index(excess, eoh)+len(eoh):]
+			excess = excess[bytes.Index(bytes.ToLower(excess), eoh)+len(eoh):]
 			ardr.excess = excess[bytes.Index(excess, []byte("<")):]
 		} else {
 			ardr.excess = chunk
 		}
 		return
 	}
-	for !bytes.Contains(chunk, eoh) {
+	for !bytes.Contains(bytes.ToLower(chunk), eoh) {
 		newchunk, _ := ardr.readChunk()
 		chunk = append(chunk, newchunk...)
 	}
-	offset := bytes.Index(chunk, eoh) + len(eoh)
+	offset := bytes.Index(bytes.ToLower(chunk), eoh) + len(eoh)
 	chunk = chunk[offset:]
 	ardr.excess = chunk[bytes.Index(chunk, []byte("<")):]
 }
@@ -117,7 +129,6 @@ func (ardr *baseADIFReader) readChunk() ([]byte, error) {
 	chunk := make([]byte, 1024)
 	n, err := ardr.rdr.Read(chunk)
 	if err != nil {
-		// TODO: Log the error somewhere
 		return nil, err
 	}
 	return chunk[:n], nil
@@ -127,7 +138,7 @@ func (ardr *baseADIFReader) readRecord() ([]byte, error) {
 	eor := []byte("<eor>")
 	buf := ardr.excess
 	ardr.excess = nil
-	for !bytes.Contains(buf, eor) {
+	for !bytes.Contains(bytes.ToLower(buf), eor) {
 		newchunk, err := ardr.readChunk()
 		buf = bytes.TrimSpace(buf)
 		if err != nil {
@@ -139,12 +150,16 @@ func (ardr *baseADIFReader) readRecord() ([]byte, error) {
 				}
 				return nil, err
 			}
-			//TODO: Log the error somewhere
+			adiflog.Println(err)
 			return buf, err
 		}
 		buf = append(buf, newchunk...)
 	}
-	record_end := bytes.Index(buf, eor)
+	record_end := bytes.Index(bytes.ToLower(buf), eor)
 	ardr.excess = buf[record_end+len(eor):]
 	return bytes.TrimSpace(buf[:record_end]), nil
+}
+
+func (ardr *baseADIFReader) RecordCount() int {
+	return ardr.records
 }
