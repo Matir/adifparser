@@ -2,7 +2,6 @@ package adifparser
 
 import (
 	"bytes"
-	"fmt"
 	"io"
 	"net/http"
 	"net/url"
@@ -104,7 +103,7 @@ func (c *lotwClientImpl) open() error {
 	params := c.getParams()
 	requri, _ := url.Parse(LOTWAPI)
 	requri.RawQuery = makeQueryString(params)
-	fmt.Printf("Requesting: %s\n", requri.String())
+	adiflog.Printf("LOTW Requesting: %s\n", requri.String())
 	resp, err := http.Get(requri.String())
 	if err != nil {
 		return err

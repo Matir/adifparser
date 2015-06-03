@@ -6,6 +6,7 @@ import (
 	"github.com/Matir/adifparser"
 	"io"
 	"os"
+	"time"
 )
 
 func main() {
@@ -24,6 +25,9 @@ func main() {
 	writer := adifparser.NewADIFWriter(os.Stdout)
 	defer writer.Flush()
 	defer client.Close()
+
+	t := time.Now().Format("2006/01/02 15:04:05")
+	writer.SetComment(fmt.Sprintf("Downloaded from LOTW at %s.", t))
 
 	for record, err := reader.ReadRecord(); record != nil; record, err = reader.ReadRecord() {
 		if err != nil {
