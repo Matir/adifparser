@@ -74,7 +74,7 @@ func getNextField(buf []byte) (*fieldData, []byte, error) {
 	start_of_name := tagStartPos(buf) + 1
 	end_of_name := bytes.IndexByte(buf, ':')
 	end_of_tag := bytes.IndexByte(buf, '>')
-	if end_of_name == -1 || end_of_tag < end_of_name {
+	if end_of_name == -1 || end_of_tag < end_of_name || end_of_name < start_of_name {
 		return nil, buf, InvalidField
 	}
 	data.name = strings.ToLower(string(buf[start_of_name:end_of_name]))

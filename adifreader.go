@@ -44,6 +44,10 @@ func (ardr *baseADIFReader) ReadRecord() (ADIFRecord, error) {
 		}
 		return nil, err
 	}
+	if len(bytes.TrimSpace(buf)) == 0 {
+		// No data left
+		return nil, io.EOF
+	}
 	record, err := ParseADIFRecord(buf)
 	if err == nil {
 		ardr.records += 1
@@ -141,18 +145,17 @@ func (ardr *baseADIFReader) readRecord() ([]byte, error) {
 	ardr.excess = nil
 	for !bContainsCI(buf, eor) {
 		newchunk, err := ardr.readChunk()
-		buf = bytes.TrimSpace(buf)
 		if err != nil {
 			ardr.excess = nil
 			if err == io.EOF {
 				// Expected, pass it up the chain
 				if len(buf) > 0 {
-					return buf, nil
+					return bytes.TrimSpace(buf), nil
 				}
 				return nil, err
 			}
 			adiflog.Println(err)
-			return buf, err
+			return nil, err
 		}
 		buf = append(buf, newchunk...)
 	}
