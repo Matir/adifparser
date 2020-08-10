@@ -55,12 +55,21 @@ func ParseADIFRecord(buf []byte) (*baseADIFRecord, error) {
 	for len(buf) > 0 {
 		var data *fieldData
 		var err error
-		data, buf, err = getNextField(buf)
-		if err != nil {
-			return nil, err
+		if buf[0] == '/' && buf[1] == '/' { // Recognize comments and skip them.
+			end_of_line := bytes.IndexByte(buf, 13)
+			if end_of_line > -1 {
+				buf = buf[end_of_line+1:]
+			} else { // The comment ends the record so there's no end-of-line.
+				buf = buf[len(buf):]
+			}
+		} else {
+			data, buf, err = getNextField(buf)
+			if err != nil {
+				return nil, err
+			}
+			// TODO: accomodate types
+			record.values[data.name] = data.value
 		}
-		// TODO: accomodate types
-		record.values[data.name] = data.value
 	}
 
 	return record, nil
