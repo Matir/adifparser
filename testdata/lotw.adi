@@ -11,7 +11,7 @@ Query:
 
 <eoh>
 
-<CALL:5>KD4LV
+<CALL:5>KD4LV  // LotW ADIF now includes comments like this one.
 <BAND:3>20M
 <FREQ:8>14.07639
 <MODE:4>JT65
@@ -19,7 +19,7 @@ Query:
 <QSO_DATE:8>20150226
 <TIME_ON:6>014700
 <QSL_RCVD:1>Y
-<QSLRDATE:8>20150602
+<QSLRDATE:8>20150602 // A comment ending a record is a special case.
 <eor>
 
 <CALL:5>PY2RU
