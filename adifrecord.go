@@ -18,6 +18,8 @@ type ADIFRecord interface {
 	Fingerprint() string
 	// Setters and getters
 	GetValue(string) (string, error)
+	// Get all of the present field names
+	GetFields() []string
 }
 
 // Internal implementation for ADIFRecord
@@ -163,4 +165,15 @@ func (r *baseADIFRecord) GetValue(name string) (string, error) {
 		return v, nil
 	}
 	return "", NoSuchField
+}
+
+// Get all of the present field names
+func (r *baseADIFRecord) GetFields() []string {
+	keys := make([]string, len(r.values))
+	i := 0
+	for k := range r.values {
+		keys[i] = k
+		i++
+	}
+	return keys
 }
