@@ -51,3 +51,28 @@ func TestParseADIFRecord(t *testing.T) {
 		t.Fatal("No 'station_call' value.")
 	}
 }
+
+func TestGetFields(t *testing.T) {
+	testData := "<call:4>W1AW<STATION_CALL:6>KF4MDV"
+	expected := [2]string{"call", "station_call"}
+
+	record, err := ParseADIFRecord([]byte(testData))
+	if err != nil {
+		t.Fatal(err)
+	}
+	fieldNames := record.GetFields()
+
+	if len(fieldNames) != len(expected) {
+		t.Fatalf("Expected %d fields but got %d", len(expected), len(fieldNames))
+	}
+
+OUTER:
+	for _, exp := range expected {
+		for _, field := range fieldNames {
+			if exp == field {
+				continue OUTER
+			}
+		}
+		t.Fatalf("Expected field %v wasn't in the actual fields", exp)
+	}
+}
