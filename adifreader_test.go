@@ -113,10 +113,11 @@ func TestDedupeReadRecord(t *testing.T) {
 
 func TestFullFiles(t *testing.T) {
 	expected := map[string]int{
-		"lotw.adi":     250,
-		"lotw_eof.adi": 1,
-		"wsjtx.adi":    74,
-		"xlog.adi":     425,
+		"lotw.adi":       250,
+		"lotw_empty.adi": 0,
+		"lotw_eof.adi":   1,
+		"wsjtx.adi":      74,
+		"xlog.adi":       425,
 	}
 	for file, count := range expected {
 		fname := filepath.Join("testdata", file)

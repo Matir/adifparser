@@ -145,6 +145,9 @@ func (ardr *baseADIFReader) readRecord() ([]byte, error) {
 	lotwEOF := []byte("<app_lotw_eof>")
 	buf := ardr.excess
 	ardr.excess = nil
+	if eofIndex := bIndexCI(buf, lotwEOF); eofIndex != -1 {
+		buf = buf[:eofIndex]
+	}
 	for !bContainsCI(buf, eor) {
 		newchunk, err := ardr.readChunk()
 		if err != nil {
@@ -160,9 +163,6 @@ func (ardr *baseADIFReader) readRecord() ([]byte, error) {
 			return nil, err
 		}
 		buf = append(buf, newchunk...)
-	}
-	if eofIndex := bIndexCI(buf, lotwEOF); eofIndex != -1 {
-		buf = buf[:eofIndex]
 	}
 	record_end := bIndexCI(buf, eor)
 	ardr.excess = buf[record_end+len(eor):]
