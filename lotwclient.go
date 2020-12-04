@@ -60,7 +60,7 @@ func (c *lotwClientImpl) Read(p []byte) (int, error) {
 	storage := make([]byte, 1024)
 	n, err := c.httpResponse.Body.Read(storage)
 	if err != nil && err != io.EOF {
-		n = copyWithoutLOTW(p, usable)
+		n = copy(p, usable)
 		return n, err
 	}
 	usable = append(usable, storage[:n]...)
@@ -76,18 +76,11 @@ func (c *lotwClientImpl) Read(p []byte) (int, error) {
 
 	c.buf = usable[max_len:]
 
-	n = copyWithoutLOTW(p, usable[:max_len])
+	n = copy(p, usable[:max_len])
 	if err == io.EOF && len(c.buf) == 0 {
 		return n, err
 	}
 	return n, nil
-}
-
-func copyWithoutLOTW(dst, src []byte) int {
-	if end := bytes.Index(src, []byte("<APP_LoTW_EOF>")); end > -1 {
-		src = src[:end]
-	}
-	return copy(dst, src)
 }
 
 func (c *lotwClientImpl) Close() error {

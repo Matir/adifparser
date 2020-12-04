@@ -23,8 +23,8 @@ func makeMockResponse(s string) *http.Response {
 
 func TestRead(t *testing.T) {
 	c := NewLOTWClient("u", "p")
-	testString := "This doesn't parse, so nothing special needed."
-	c.httpResponse = makeMockResponse(testString + "<APP_LoTW_EOF>")
+	testString := "This doesn't parse, so nothing special needed.<APP_LoTW_EOF>"
+	c.httpResponse = makeMockResponse(testString)
 	buf := make([]byte, 1024)
 	n, err := c.Read(buf)
 	buf = buf[:n]
@@ -38,8 +38,8 @@ func TestRead(t *testing.T) {
 
 func TestReadChunked(t *testing.T) {
 	c := NewLOTWClient("u", "p")
-	testString := "This doesn't parse, so nothing special needed."
-	c.httpResponse = makeMockResponse(testString + "<APP_LoTW_EOF>")
+	testString := "This doesn't parse, so nothing special needed.<APP_LoTW_EOF>"
+	c.httpResponse = makeMockResponse(testString)
 	buf := make([]byte, 3)
 	n, err := c.Read(buf)
 	buf = buf[:n]
