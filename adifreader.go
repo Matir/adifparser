@@ -141,6 +141,8 @@ func (ardr *baseADIFReader) readChunk() ([]byte, error) {
 
 func (ardr *baseADIFReader) readRecord() ([]byte, error) {
 	eor := []byte("<eor>")
+	// LotW ends their files with a non-standard EOF tag.
+	lotwEOF := []byte("<app_lotw_eof>")
 	buf := ardr.excess
 	ardr.excess = nil
 	for !bContainsCI(buf, eor) {
@@ -158,6 +160,9 @@ func (ardr *baseADIFReader) readRecord() ([]byte, error) {
 			return nil, err
 		}
 		buf = append(buf, newchunk...)
+	}
+	if eofIndex := bIndexCI(buf, lotwEOF); eofIndex != -1 {
+		buf = buf[:eofIndex]
 	}
 	record_end := bIndexCI(buf, eor)
 	ardr.excess = buf[record_end+len(eor):]
