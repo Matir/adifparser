@@ -16,5 +16,9 @@ func bContainsCI(b, subslice []byte) bool {
 
 // Find start of next tag
 func tagStartPos(b []byte) int {
-	return bytes.IndexByte(b, '<')
+	nextStart := bytes.IndexByte(b, '<')
+	if nextStart == -1 {
+		return 0
+	}
+	return nextStart
 }
