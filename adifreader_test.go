@@ -117,6 +117,7 @@ func TestFullFiles(t *testing.T) {
 		"lotw_empty.adi":        0,
 		"lotw_empty_no_eof.adi": 0,
 		"lotw_eof.adi":          1,
+		"lotw_new.adi":          4,
 		"wsjtx.adi":             74,
 		"xlog.adi":              425,
 	}
@@ -130,10 +131,10 @@ func TestFullFiles(t *testing.T) {
 		reader := NewADIFReader(f)
 		for rec, err := reader.ReadRecord(); err != io.EOF; {
 			if err != nil {
-				t.Fatal(err)
+				t.Fatalf("input %s: %v", file, err)
 			}
 			if rec == nil {
-				t.Fatal("rec is nil")
+				t.Fatalf("input %s: rec is nil", file)
 			}
 			rec, err = reader.ReadRecord()
 		}
