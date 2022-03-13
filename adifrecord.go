@@ -18,6 +18,7 @@ type ADIFRecord interface {
 	Fingerprint() string
 	// Setters and getters
 	GetValue(string) (string, error)
+	SetValue(string, string)
 	// Get all of the present field names
 	GetFields() []string
 }
@@ -165,6 +166,11 @@ func (r *baseADIFRecord) GetValue(name string) (string, error) {
 		return v, nil
 	}
 	return "", NoSuchField
+}
+
+// Set a value
+func (r *baseADIFRecord) SetValue(name string, value string) {
+	r.values[strings.ToLower(name)] = value
 }
 
 // Get all of the present field names
