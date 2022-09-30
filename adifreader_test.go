@@ -144,3 +144,28 @@ func TestFullFiles(t *testing.T) {
 		}
 	}
 }
+
+func TestReadRecordWithBlank(t *testing.T) {
+	buf := strings.NewReader("<mycall:7>KF4MDV <eor>")
+	reader := NewADIFReader(buf)
+	if reader == nil {
+		t.Fatal("Invalid reader.")
+	}
+
+	r, err := reader.ReadRecord()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if r == nil {
+		t.Fatal("Got nil record.")
+	}
+
+	if v, err := r.GetValue("mycall"); err != nil {
+		t.Fatal("Got value:mycall error")
+	} else {
+		if v != "KF4MDV " {
+			t.Fatal("Not matched")
+		}
+	}
+
+}
