@@ -6,7 +6,6 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
-	"strconv"
 	"strings"
 )
 
@@ -45,80 +44,6 @@ func NewADIFRecord() *baseADIFRecord {
 	record := &baseADIFRecord{}
 	record.values = make(map[string]string)
 	return record
-}
-
-// Parse an ADIFRecord
-func ParseADIFRecord(buf []byte) (*baseADIFRecord, error) {
-	record := NewADIFRecord()
-
-	if len(buf) == 0 {
-		return nil, NoData
-	}
-
-	for len(buf) > 0 {
-		var data *fieldData
-		var err error
-		if buf[0] == '/' && buf[1] == '/' { // Recognize comments and skip them.
-			end_of_line := bytes.IndexByte(buf, 13)
-			if end_of_line > -1 {
-				buf = buf[end_of_line+1:]
-			} else { // The comment ends the record so there's no end-of-line.
-				buf = buf[len(buf):]
-			}
-		} else {
-			data, buf, err = getNextField(buf)
-			if err != nil {
-				return nil, err
-			}
-			// TODO: accomodate types
-			record.values[data.name] = data.value
-		}
-	}
-
-	return record, nil
-}
-
-// Get the next field, return field data, leftover data, and optional error
-func getNextField(buf []byte) (*fieldData, []byte, error) {
-	data := &fieldData{}
-
-	// Extract name
-	start_of_name := tagStartPos(buf) + 1
-	end_of_name := bytes.IndexByte(buf, ':')
-	end_of_tag := bytes.IndexByte(buf, '>')
-	if end_of_name == -1 || end_of_tag < end_of_name || end_of_name < start_of_name {
-		return nil, buf, InvalidField
-	}
-	data.name = strings.ToLower(string(buf[start_of_name:end_of_name]))
-	buf = buf[end_of_name+1:]
-	// Adjust to new buffer
-	end_of_tag -= end_of_name + 1
-
-	// Length
-	var length int
-	var err error
-	start_type := bytes.IndexByte(buf, ':')
-	if start_type == -1 || start_type > end_of_tag {
-		end_of_length := bytes.IndexByte(buf, '>')
-		length, err = strconv.Atoi(string(buf[:end_of_length]))
-		buf = buf[end_of_length+1:]
-		data.hasType = false
-	} else {
-		length, err = strconv.Atoi(string(buf[:start_type]))
-		data.typecode = buf[start_type+1]
-		buf = buf[start_type+3:]
-		data.hasType = true
-	}
-	if err != nil {
-		// TODO: log the error
-		return nil, buf, err
-	}
-
-	// Value
-	data.value = string(buf[:length])
-	buf = bytes.TrimSpace(buf[length:])
-
-	return data, buf, nil
 }
 
 func serializeField(name string, value string) string {
