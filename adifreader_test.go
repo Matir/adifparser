@@ -1,6 +1,7 @@
 package adifparser
 
 import (
+	"bufio"
 	"bytes"
 	"io"
 	"os"
@@ -16,11 +17,13 @@ func testHeaderFile(t *testing.T, filename string) {
 	}
 
 	reader := &baseADIFReader{}
-	reader.rdr = f
+	reader.rdr = bufio.NewReader(f)
 	reader.readHeader()
-	if !bytes.HasPrefix(reader.excess, []byte("<mycall")) {
-		t.Fatalf("Excess has %s, expected %s.", string(reader.excess), "<mycall")
+	prefix, err := reader.rdr.Peek(128)
+	if bytes.HasPrefix(prefix, []byte("<mycall")) {
+		t.Fatalf("prefix has %s, expected %s.", string(prefix), "<mycall")
 	}
+	t.Logf("adif_version: %s", reader.version)
 }
 
 func TestHeaderNone(t *testing.T) {
@@ -33,28 +36,6 @@ func TestHeaderVersion(t *testing.T) {
 
 func TestHeaderComment(t *testing.T) {
 	testHeaderFile(t, "testdata/header_comment.adi")
-}
-
-func TestInternalReadRecord(t *testing.T) {
-	f, err := os.Open("testdata/readrecord.adi")
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	reader := &baseADIFReader{}
-	reader.rdr = f
-
-	testStrings := [...]string{
-		"<mycall:6>KF4MDV", "<mycall:6>KG4JEL", "<mycall:4>W1AW"}
-	for i := range testStrings {
-		buf, err := reader.readRecord()
-		if err != nil && err != io.EOF {
-			t.Fatal(err)
-		}
-		if string(buf) != testStrings[i] {
-			t.Fatalf("Got bad record %q, expected %q.", string(buf), testStrings[i])
-		}
-	}
 }
 
 func TestReadRecord(t *testing.T) {
@@ -166,6 +147,171 @@ func TestReadRecordWithBlank(t *testing.T) {
 		if v != "KF4MDV " {
 			t.Fatal("Not matched")
 		}
+	}
+
+}
+
+func TestReadRecordWithBlank2(t *testing.T) {
+	buf := strings.NewReader(" <EOH>\n<NOTES:10>          <eor>")
+	reader := NewADIFReader(buf)
+	if reader == nil {
+		t.Fatal("Invalid reader.")
+	}
+
+	r, err := reader.ReadRecord()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if r == nil {
+		t.Fatal("Got nil record.")
+	}
+
+	if v, err := r.GetValue("notes"); err != nil {
+		t.Fatal("Got value:notes error")
+	} else {
+		if v != "          " {
+			t.Fatal("Not matched")
+		}
+	}
+
+}
+
+func TestReadRecordWithFiller(t *testing.T) {
+	buf := strings.NewReader("<NOTES:8>ABCDEFGH|IGNORE_THIS|<EOR>|FILLER")
+	reader := NewADIFReader(buf)
+	if reader == nil {
+		t.Fatal("Invalid reader.")
+	}
+
+	r, err := reader.ReadRecord()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if r == nil {
+		t.Fatal("Got nil record.")
+	}
+
+	if v, err := r.GetValue("notes"); err != nil {
+		t.Fatal("Got value:notes error")
+	} else {
+		if v != "ABCDEFGH" {
+			t.Fatal("Not matched")
+		}
+	}
+
+}
+
+// This is out of ADI file specification,
+// but in some cases you should expect non-ASCII characters in the field value.
+
+func TestReadRecordWithNonASCII(t *testing.T) {
+	buf := strings.NewReader("<TEXT:4>AB\xedD\xeb<EOR> ")
+	reader := NewADIFReader(buf)
+	if reader == nil {
+		t.Fatal("Invalid reader.")
+	}
+
+	r, err := reader.ReadRecord()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if r == nil {
+		t.Fatal("Got nil record.")
+	}
+
+	if v, err := r.GetValue("text"); err != nil {
+		t.Fatal("Got value:text error")
+	} else {
+		if v != "AB\xedD" {
+			t.Fatal("Not matched")
+		}
+	}
+
+}
+
+func TestReadRecordWithNonASCII2(t *testing.T) {
+	buf := strings.NewReader("<noTes:5>12345<test:6> XY\xedZ <yum:7:s>ABCD!EF<EOR>")
+	reader := NewADIFReader(buf)
+	if reader == nil {
+		t.Fatal("Invalid reader.")
+	}
+
+	r, err := reader.ReadRecord()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if r == nil {
+		t.Fatal("Got nil record.")
+	}
+
+	if v, err := r.GetValue("notes"); err != nil {
+		t.Fatal("Got value:notes error")
+	} else {
+		if v != "12345" {
+			t.Fatal("Not matched")
+		}
+	}
+	if v, err := r.GetValue("test"); err != nil {
+		t.Fatal("Got value:test error")
+	} else {
+		if v != " XY\xedZ " {
+			t.Fatal("Not matched")
+		}
+	}
+	if v, err := r.GetValue("yum"); err != nil {
+		t.Fatal("Got value:yum error")
+	} else {
+		if v != "ABCD!EF" {
+			t.Fatal("Not matched")
+		}
+	}
+
+}
+
+func TestReadRecordWithNoEOH(t *testing.T) {
+	buf := strings.NewReader(" <TEST:1>A <EOR> ")
+	reader := NewADIFReader(buf)
+	if reader == nil {
+		t.Fatal("Invalid reader.")
+	}
+
+	_, err := reader.ReadRecord()
+	if err != io.EOF {
+		t.Fatalf("Expected %v, got %v", io.EOF, err)
+	}
+}
+
+func TestForReadElement(t *testing.T) {
+	buf := strings.NewReader(" |FILLER1| <TeSt:2>XY |FILLER 2| <eOr>  ")
+	reader := NewADIFReader(buf)
+	if reader == nil {
+		t.Fatal("Invalid reader.")
+	}
+	element, err := reader.readElement()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if element == nil {
+		t.Fatal("Got nil element.")
+	}
+	if element.name != "test" {
+		t.Fatal("element.name not matched for TEST")
+	}
+	if element.value != "XY" {
+		t.Fatal("element.value not matched for XY")
+	}
+	element, err = reader.readElement()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if element == nil {
+		t.Fatal("Got nil element.")
+	}
+	if element.name != "eor" {
+		t.Fatal("element.name not matched")
+	}
+	if element.hasValue {
+		t.Fatal("element.value for EOR is true")
 	}
 
 }
