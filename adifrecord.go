@@ -108,3 +108,12 @@ func (r *baseADIFRecord) GetFields() []string {
 	}
 	return keys
 }
+
+// Delete a field (from the internal map)
+func (r *baseADIFRecord) DeleteField(name string) (bool, error) {
+	if _, ok := r.values[name]; ok {
+		delete(r.values, name)
+		return true, nil
+	}
+	return false, ErrNoSuchField
+}
