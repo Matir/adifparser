@@ -115,5 +115,5 @@ func (r *baseADIFRecord) DeleteField(name string) (bool, error) {
 		delete(r.values, name)
 		return true, nil
 	}
-	return false, ErrNoSuchField
+	return false, NoSuchField
 }
